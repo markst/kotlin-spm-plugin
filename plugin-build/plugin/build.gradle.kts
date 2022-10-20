@@ -3,6 +3,7 @@ import BuildPluginsVersion.KOTLIN
 plugins {
     kotlin("jvm")
     id("java-gradle-plugin")
+    id("maven-publish")
     id("com.gradle.plugin-publish")
 }
 
@@ -30,6 +31,8 @@ gradlePlugin {
     plugins {
         create(PluginCoordinates.ID) {
             id = PluginCoordinates.ID
+            displayName = PluginBundle.DISPLAY_NAME
+            description = PluginBundle.DESCRIPTION
             implementationClass = PluginCoordinates.IMPLEMENTATION_CLASS
             version = PluginCoordinates.VERSION
         }
@@ -40,20 +43,7 @@ gradlePlugin {
 pluginBundle {
     website = PluginBundle.WEBSITE
     vcsUrl = PluginBundle.VCS
-    description = PluginBundle.DESCRIPTION
     tags = PluginBundle.TAGS
-
-    plugins {
-        getByName(PluginCoordinates.ID) {
-            displayName = PluginBundle.DISPLAY_NAME
-        }
-    }
-
-    mavenCoordinates {
-        groupId = PluginCoordinates.GROUP
-        artifactId = PluginCoordinates.ARTIFACT
-        version = PluginCoordinates.VERSION
-    }
 }
 
 tasks.create("setupPluginUploadFromEnvironment") {
