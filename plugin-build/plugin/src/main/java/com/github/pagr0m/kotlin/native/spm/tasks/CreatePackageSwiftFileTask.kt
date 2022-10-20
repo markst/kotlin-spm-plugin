@@ -20,7 +20,7 @@ abstract class CreatePackageSwiftFileTask : DefaultTask() {
 
     private val swiftPackageTemplateContent = this::class.java.getResource("/Package.swift")!!.readText()
 
-    @Nested
+    @Input
     val platformFamily: Property<Family> = project.objects.property(Family::class.java)
 
     @Input
