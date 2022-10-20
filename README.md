@@ -13,7 +13,7 @@ Multiplatform.
 plugins {
     java
     kotlin("multiplatform")
-    id("com.github.pagr0m.kotlin.native.spm")
+    id("com.doublesymmetry.kotlin-native-spm")
 }
 ```
 
