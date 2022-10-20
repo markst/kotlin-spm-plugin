@@ -46,6 +46,18 @@ pluginBundle {
     tags = PluginBundle.TAGS
 }
 
+publishing {
+    repositories {
+        maven {
+            setUrl("https://maven.pkg.github.com/doublesymmetry/kotlin-native-spm")
+            credentials {
+                username = System.getenv("GITHUB_USER")
+                password = System.getenv("GITHUB_TOKEN")
+            }
+        }
+    }
+}
+
 tasks.create("setupPluginUploadFromEnvironment") {
     doLast {
         val key = System.getenv("GRADLE_PUBLISH_KEY")

@@ -1,10 +1,5 @@
 name: Publish Plugin to Portal
-
-on:
-  push:
-    tags:
-      - '*'
-
+on: [ workflow_dispatch ]
 jobs:
   gradle:
     runs-on: ubuntu-latest
@@ -27,8 +22,10 @@ jobs:
           key: cache-gradle-wrapper
       - name: Run Gradle tasks
         run: ./gradlew preMerge --continue
-      - name: Publish on Plugin Portal
-        run: ./gradlew --project-dir plugin-build setupPluginUploadFromEnvironment publishPlugins
-        if: success()
+      - name: Release library
+        run: ./gradlew publish
+        env:
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ github.token }}
       - name: Stop Gradle
         run: ./gradlew --stop
