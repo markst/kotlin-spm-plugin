@@ -58,11 +58,17 @@ abstract class KotlinSpmPlugin : Plugin<Project> {
         platforms: NamedDomainObjectContainer<PlatformManager.SwiftPackageManager>,
     ) {
         platforms.all { platform ->
+            val cleanSwiftPackageTask = project.tasks.named(
+                "$CLEAN_SWIFT_PACKAGE_PROJECT_TASK_NAME${platform.family}",
+                CleanSwiftPackageProjectTask::class.java
+            )
+
             project.tasks.register(
                 "$INITIALIZE_SWIFT_PACKAGE_PROJECT_TASK_NAME${platform.family}",
                 InitializeSwiftPackageProjectTask::class.java
             ) { task ->
                 task.platformFamily.set(platform.family)
+                task.dependsOn(cleanSwiftPackageTask)
             }
         }
     }
