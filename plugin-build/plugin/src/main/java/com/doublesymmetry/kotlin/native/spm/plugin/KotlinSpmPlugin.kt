@@ -27,7 +27,6 @@ abstract class KotlinSpmPlugin : Plugin<Project> {
         // Integration Swift Package dependency to Kotlin
         registerInitializeSwiftPackageProjectTask(project, availablePlatforms)
         registerCreatePackageSwiftFileTask(project, availablePlatforms)
-        registerGenerateXcodeTask(project, availablePlatforms)
         registerBuildFrameworksTask(project, availablePlatforms)
         registerGenerateDefFileTask(project, availablePlatforms)
         registerConfigureLinkerOptionsTask(project, availablePlatforms, multiplatformExtension)
@@ -91,7 +90,7 @@ abstract class KotlinSpmPlugin : Plugin<Project> {
         }
     }
 
-    private fun registerGenerateXcodeTask(
+    private fun registerBuildFrameworksTask(
         project: Project,
         platforms: NamedDomainObjectContainer<PlatformManager.SwiftPackageManager>,
     ) {
@@ -99,27 +98,6 @@ abstract class KotlinSpmPlugin : Plugin<Project> {
             val createPackageSwiftFileTask = project.tasks.named(
                 "$CREATE_PACKAGE_SWIFT_FILE_TASK_NAME${platform.family}",
                 CreatePackageSwiftFileTask::class.java
-            )
-
-            project.tasks.register(
-                "$GENERATE_XCODE_TASK_NAME${platform.family}",
-                GenerateXcodeTask::class.java
-            ) { task ->
-                task.platformFamily.set(platform.family)
-
-                task.dependsOn(createPackageSwiftFileTask)
-            }
-        }
-    }
-
-    private fun registerBuildFrameworksTask(
-        project: Project,
-        platforms: NamedDomainObjectContainer<PlatformManager.SwiftPackageManager>,
-    ) {
-        platforms.all { platform ->
-            val generateXcodeTask = project.tasks.named(
-                "$GENERATE_XCODE_TASK_NAME${platform.family}",
-                GenerateXcodeTask::class.java
             )
 
             platform.dependenciesContainer.all { dependency ->
@@ -130,7 +108,7 @@ abstract class KotlinSpmPlugin : Plugin<Project> {
                     task.platformFamily.set(platform.family)
                     task.platformDependency.set(dependency.dependencyName)
 
-                    task.dependsOn(generateXcodeTask)
+                    task.dependsOn(createPackageSwiftFileTask)
                 }
             }
         }
