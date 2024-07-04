@@ -125,7 +125,7 @@ abstract class KotlinSpmPlugin : Plugin<Project> {
         platforms.all { platform ->
             platform.dependenciesContainer.all { dependency ->
                 val buildFrameworkTask = project.tasks.named(
-                    "$BUILD_FRAMEWORK_TASK_NAME${platform.family}${dependency.dependencyName}",
+                    "$BUILD_FRAMEWORK_TASK_NAME${platform.family}",
                     BuildFrameworksTask::class.java
                 )
 
@@ -154,7 +154,7 @@ abstract class KotlinSpmPlugin : Plugin<Project> {
 
                 platform.dependenciesContainer.all { dependency ->
                     val buildFrameworkTask = project.tasks.named(
-                        "$BUILD_FRAMEWORK_TASK_NAME${platform.family}${dependency.dependencyName}",
+                        "$BUILD_FRAMEWORK_TASK_NAME${platform.family}",
                         BuildFrameworksTask::class.java
                     )
 

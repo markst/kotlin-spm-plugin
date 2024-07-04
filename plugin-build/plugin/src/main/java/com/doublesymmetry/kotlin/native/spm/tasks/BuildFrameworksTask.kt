@@ -5,6 +5,7 @@ import com.doublesymmetry.kotlin.native.spm.swiftPackageBuildDirs
 import org.gradle.api.DefaultTask
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
+import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.*
 import org.jetbrains.kotlin.konan.target.Family
 import java.io.File
@@ -29,6 +30,13 @@ abstract class BuildFrameworksTask : DefaultTask() {
     @Input
     val platformDependencies: ListProperty<String> = project.objects.listProperty(String::class.java)
 
+    @get:OutputDirectory
+    val outputFrameworkDirectory: Provider<File>
+        get() = platformFamily.map {
+            project.swiftPackageBuildDirs.releaseDir(it)
+                .resolve("Output")
+        }
+
     @TaskAction
     fun buildXCFramework() {
         val configuration = "Release"
@@ -48,7 +56,7 @@ abstract class BuildFrameworksTask : DefaultTask() {
         val packageDirectory = project.swiftPackageBuildDirs.platformRoot(platformFamily.get())
         val family = platformFamily.get()
         val familyPlatform = platformFamily.get().toPlatform()
-        val outputDirectory = project.swiftPackageBuildDirs.releaseDir(platformFamily.get()).resolve("Output")
+        val outputDirectory = outputFrameworkDirectory.get()
 
         project.exec {
             it.workingDir = packageDirectory
@@ -63,7 +71,7 @@ abstract class BuildFrameworksTask : DefaultTask() {
                 "SKIP_INSTALL=NO",
                 "BUILD_LIBRARY_FOR_DISTRIBUTION=YES",
                 "OTHER_SWIFT_FLAGS=-no-verify-emitted-module-interface",
-                "SYMROOT=${outputDirectory.path}"
+                "SYMROOT=${outputDirectory}"
             )
         }
     }
