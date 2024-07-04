@@ -106,16 +106,14 @@ abstract class KotlinSpmPlugin : Plugin<Project> {
                 CreatePackageSwiftFileTask::class.java
             )
 
-            platform.dependenciesContainer.all { dependency ->
-                project.tasks.register(
-                    "$BUILD_FRAMEWORK_TASK_NAME${platform.family}${dependency.dependencyName}",
-                    BuildFrameworksTask::class.java
-                ) { task ->
-                    task.platformFamily.set(platform.family)
-                    task.platformDependency.set(dependency.dependencyName)
+            project.tasks.register(
+                "$BUILD_FRAMEWORK_TASK_NAME${platform.family}",
+                BuildFrameworksTask::class.java
+            ) { task ->
+                task.platformFamily.set(platform.family)
+                task.platformDependencies.set(platform.dependenciesContainer.map { it.name })
 
-                    task.dependsOn(createPackageSwiftFileTask)
-                }
+                task.dependsOn(createPackageSwiftFileTask)
             }
         }
     }
