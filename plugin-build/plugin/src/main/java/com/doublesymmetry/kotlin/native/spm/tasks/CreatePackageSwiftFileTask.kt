@@ -40,11 +40,11 @@ abstract class CreatePackageSwiftFileTask : DefaultTask() {
 
         val dependencyArea = platformDependencies
             .toList()
-            .joinToString(", ") { it.convertToPackageContent() }
+            .joinToString(",\n") { it.convertToPackageContent() }
 
         val targetDependencyArea = platformDependencies
             .toList()
-            .joinToString(", ") { "\"${it.dependencyName}\"" }
+            .joinToString(",\n") { ".productItem(name: \"${it.dependencyName}\", package: \"${it.packageName}\")" }
 
         project.swiftPackageBuildDirs.platformRoot(family)
             .resolve("Package.swift")
