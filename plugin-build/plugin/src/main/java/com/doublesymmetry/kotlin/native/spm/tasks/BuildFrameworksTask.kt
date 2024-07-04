@@ -11,14 +11,14 @@ import org.jetbrains.kotlin.konan.target.Family
 import java.io.File
 
 @CacheableTask
-abstract class BuildFrameworksTask : Exec() {
+abstract class BuildFrameworksTask : DefaultTask() {
     init {
         /**
          * Task like a command: `xcodebuild -scheme IOS -sdk iphoneos -destination "platform=iOS Simulator" -configuration Release -derivedDataPath ./build SKIP_INSTALL=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES OTHER_SWIFT_FLAGS=-no-verify-emitted-module-interface SYMROOT=$(PWD)/build
          */
         description =
             "Build and assemble an xcframework from the Swift package, including headers and modules."
-        group = "Build"
+        group = KotlinSpmPlugin.TASK_GROUP
     }
 
     @Input
@@ -30,7 +30,8 @@ abstract class BuildFrameworksTask : Exec() {
     @get:OutputDirectory
     val outputFrameworkDirectory: Provider<File>
         get() = platformFamily.map {
-            project.swiftPackageBuildDirs.releaseDir(it).resolve("${platformDependency.get()}.framework")
+            project.swiftPackageBuildDirs.releaseDir(it)
+                .resolve("${platformDependency.get()}.framework")
         }
 
     @TaskAction
@@ -42,7 +43,7 @@ abstract class BuildFrameworksTask : Exec() {
         copyHeaders(configuration, sdk)
         handleSwiftModules(configuration, sdk)
         copyResources(configuration, sdk)
-        createXCFramework()
+        createXCFramework(configuration, sdk)
     }
 
     private fun buildFramework(configuration: String, sdk: String) {
@@ -51,14 +52,17 @@ abstract class BuildFrameworksTask : Exec() {
         val familyPlatform = platformFamily.get().toPlatform()
 
         project.exec {
+            println("packageDirectory: $packageDirectory")
+            println("outputFrameworkDirectory: ${outputFrameworkDirectory.get()}")
             it.workingDir = packageDirectory
             it.commandLine(
                 "xcodebuild", "build",
                 "-scheme", family,
-                "-destination", "platform=$familyPlatform",
+                "-destination", "generic/platform=$familyPlatform",
                 "-sdk", sdk,
                 "-configuration", configuration,
-                "-derivedDataPath", packageDirectory.path,
+                "-derivedDataPath", project.swiftPackageBuildDirs.derivedDataPath(),
+                "-quiet",
                 "SKIP_INSTALL=NO",
                 "BUILD_LIBRARY_FOR_DISTRIBUTION=YES",
                 "OTHER_SWIFT_FLAGS=-no-verify-emitted-module-interface",
@@ -68,15 +72,16 @@ abstract class BuildFrameworksTask : Exec() {
     }
 
     private fun copyHeaders(configuration: String, sdk: String) {
+        val derivedDataPath = project.swiftPackageBuildDirs.derivedDataPath()
         val packageDirectory = project.swiftPackageBuildDirs.platformRoot(platformFamily.get())
         val family = platformFamily.get()
         val headersPath =
-            outputFrameworkDirectory.get().resolve("${platformDependency.get()}.framework/Headers")
+            outputFrameworkDirectory.get().resolve("${configuration}-${sdk}/PackageFrameworks/${family.name}.framework/Headers")
         headersPath.mkdirs()
 
         val buildFrameworkPath = File(
-            packageDirectory,
-            ".build/Build/Intermediates.noindex/${family}.build/${configuration}-${sdk}/${family}.build/Objects-normal/arm64"
+            derivedDataPath,
+            "Build/Intermediates.noindex/${family}.build/${configuration}-${sdk}/${family}.build/Objects-normal/arm64"
         )
         val swiftHeader = File(buildFrameworkPath, "${family}-Swift.h")
 
@@ -92,14 +97,15 @@ abstract class BuildFrameworksTask : Exec() {
     }
 
     private fun handleSwiftModules(configuration: String, sdk: String) {
+        val derivedDataPath = project.swiftPackageBuildDirs.derivedDataPath()
         val packageDirectory = project.swiftPackageBuildDirs.platformRoot(platformFamily.get())
         val family = platformFamily.get()
         val modulesDir =
-            outputFrameworkDirectory.get().resolve("${platformDependency.get()}.framework/Modules")
+            outputFrameworkDirectory.get().resolve("${configuration}-${sdk}/PackageFrameworks/${family.name}.framework/Modules")
         modulesDir.mkdirs()
 
         val swiftModuleDir =
-            File(packageDirectory, ".build/${family}.swiftmodule")
+            File(derivedDataPath, "${family}.swiftmodule")
         if (swiftModuleDir.exists()) {
             swiftModuleDir.copyRecursively(modulesDir, overwrite = true)
         } else {
@@ -116,10 +122,11 @@ abstract class BuildFrameworksTask : Exec() {
     }
 
     private fun copyResources(configuration: String, sdk: String) {
+        val derivedDataPath = project.swiftPackageBuildDirs.derivedDataPath()
         val packageDirectory = project.swiftPackageBuildDirs.platformRoot(platformFamily.get())
         val family = platformFamily.get()
         val bundleDir =
-            File(packageDirectory, ".build/${family}_${family}.bundle")
+            File(derivedDataPath, "${family}_${family}.bundle")
         if (bundleDir.exists()) {
             bundleDir.copyRecursively(
                 outputFrameworkDirectory.get().resolve("${platformDependency.get()}.framework"),
@@ -128,24 +135,24 @@ abstract class BuildFrameworksTask : Exec() {
         }
     }
 
-    private fun createXCFramework() {
+    private fun createXCFramework(configuration: String, sdk: String) {
         val family = platformFamily.get()
-        val xcframeworkPath =
-            outputFrameworkDirectory.get().resolve("${family}.xcframework")
+        val frameworkDir = outputFrameworkDirectory.get().resolve("${configuration}-${sdk}/PackageFrameworks/${family.name}.framework")
+        val xcframeworkPath = project.swiftPackageBuildDirs
+            .releaseDir(family)
+            .resolve("${platformDependency.get()}.xcframework")
+
         project.exec {
             it.commandLine(
                 "xcodebuild", "-create-xcframework",
-                listOf(
-                    "-framework",
-                    outputFrameworkDirectory.get().resolve("${platformDependency.get()}.framework").absolutePath
-                ),
+                "-framework", frameworkDir, // TODO: Pass list of dirs for each platformFamily / releaseDir / toReleaseSdk?
                 "-output", xcframeworkPath.absolutePath
             )
         }
     }
 
     private fun Family.toSdk(): String {
-        return when(this) {
+        return when (this) {
             Family.OSX -> "macosx"
             Family.IOS -> "iphonesimulator"
             else -> ""
@@ -153,9 +160,9 @@ abstract class BuildFrameworksTask : Exec() {
     }
 
     private fun Family.toPlatform(): String {
-        return when(this) {
+        return when (this) {
             Family.OSX -> "Mac"
-            Family.IOS -> "iOS"
+            Family.IOS -> "iOS Simulator"
             else -> "Unknown"
         }
     }
