@@ -16,15 +16,15 @@ kotlin {
     spm {
         ios("13") {
             dependencies {
-                /* TODO: Support Obj-C header (when not a swift framework x-Swift.h)
                 packages(
                     url = "https://github.com/AFNetworking/AFNetworking.git",
                     version = "4.0.1",
                     name = "AFNetworking"
                 )
+                /* TODO: Support building target dependencies? i.e `FirebaseCore` & `FirebaseSharedSwift`
                 packages(
                     url = "https://github.com/firebase/firebase-ios-sdk.git",
-                    version = "10.28.1",
+                    version = "10.21.0",
                     name = "FirebaseRemoteConfig"
                 )
                 */

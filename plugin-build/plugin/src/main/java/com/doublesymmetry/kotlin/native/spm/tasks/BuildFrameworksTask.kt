@@ -1,7 +1,10 @@
 package com.doublesymmetry.kotlin.native.spm.tasks
 
+import com.doublesymmetry.kotlin.native.spm.entity.impl.DependencyManager.Package
 import com.doublesymmetry.kotlin.native.spm.plugin.KotlinSpmPlugin
 import com.doublesymmetry.kotlin.native.spm.swiftPackageBuildDirs
+import groovy.transform.EqualsAndHashCode
+import org.apache.tools.ant.taskdefs.Pack
 import org.gradle.api.DefaultTask
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
@@ -15,6 +18,7 @@ import java.nio.file.StandardCopyOption
 
 @CacheableTask
 abstract class BuildFrameworksTask : DefaultTask() {
+
     init {
         /**
          * Task description: Packages headers, modules, and binaries into a Framework.
@@ -86,6 +90,7 @@ abstract class BuildFrameworksTask : DefaultTask() {
         if (binaryPath.exists()) {
             binaryPath.copyTo(File(outputBinaryDir, dependency), overwrite = true)
         } else {
+            // TODO: Check if SPM package contained a precompiled .framework i.e `GoogleCast.framework`
             throw RuntimeException("Binary not found at ${binaryPath.path}")
         }
     }
@@ -121,7 +126,7 @@ abstract class BuildFrameworksTask : DefaultTask() {
     }
 
     private fun copyHeaders(dependency: String, configuration: String) {
-        val headerPath = project.swiftPackageBuildDirs.derivedDataPath()
+        val headerPath = project.swiftPackageBuildDirs.derivedDataPath() // TODO: Use `toReleaseSdk`:
             .resolve("Build/Intermediates.noindex/${dependency}.build/${configuration}-iphonesimulator/${dependency}.build/Objects-normal/arm64/${dependency}-Swift.h")
         val outputHeadersDir = project.swiftPackageBuildDirs.releaseDir(platformFamily.get())
             .resolve("${dependency}.framework/Versions/A/Headers")
@@ -130,26 +135,20 @@ abstract class BuildFrameworksTask : DefaultTask() {
         if (headerPath.exists()) {
             headerPath.copyTo(File(outputHeadersDir, "${dependency}-Swift.h"), overwrite = true)
         } else {
-            val alternativeHeaderPath = findHeaderFile(project.swiftPackageBuildDirs.derivedDataPath().toPath(), "${dependency}.h")
-            if (alternativeHeaderPath != null) {
-                alternativeHeaderPath.copyTo(File(outputHeadersDir, "${dependency}.h"), overwrite = true)
-            } else {
-                println("Header not found for ${dependency} at ${headerPath.path} or in checkouts directory")
-            }
+            project.swiftPackageBuildDirs.derivedDataPath() // TODO: Support passing `packageName`
+                .resolve("SourcePackages/checkouts/${dependency}/${dependency}")
+                .walkTopDown()
+                .filter { it.isFile && it.extension == "h" }
+                .forEach { headerFile ->
+                    val targetFile = outputHeadersDir.resolve(headerFile.name)
+                    headerFile.copyTo(targetFile, overwrite = true)
+                }
         }
     }
 
     private fun findSwiftModuleDirectory(basePath: Path, moduleName: String): Path? {
         return Files.walk(basePath)
             .filter { Files.isDirectory(it) && it.fileName.toString() == moduleName }
-            .findFirst()
-            .orElse(null)
-    }
-
-    private fun findHeaderFile(basePath: Path, headerName: String): File? {
-        return Files.walk(basePath)
-            .filter { Files.isRegularFile(it) && it.fileName.toString() == headerName }
-            .map(Path::toFile)
             .findFirst()
             .orElse(null)
     }
