@@ -5,6 +5,6 @@ pluginManagement {
     }
 }
 
-rootProject.name = ("kotlin-native-spm")
+rootProject.name = ("com.github.pagr0m.kotlin.native.spm")
 
 include(":plugin")

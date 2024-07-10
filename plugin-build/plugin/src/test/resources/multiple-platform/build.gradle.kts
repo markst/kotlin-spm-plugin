@@ -1,7 +1,7 @@
 plugins {
     java
     kotlin("multiplatform")
-    id("com.doublesymmetry.kotlin-native-spm")
+    id("com.github.pagr0m.kotlin.native.spm")
 }
 
 kotlin {
